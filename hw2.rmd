@@ -1,0 +1,175 @@
+```{r}
+library(shiny)
+ library(tidyverse)
+ library(lubridate)
+ library(plotly)
+ 
+ movies <- read_csv("./netflix_titles.csv")
+   )
+colnames(movies)
+```
+
+```{r}
+library(shiny)
+library(tidyverse)
+library(plotly)
+
+
+# Data preparation
+movies <- movies %>%
+  filter(!is.na(release_year), !is.na(type), !is.na(country)) %>%
+  mutate(date_added = as.Date(date_added, format = "%B %d, %Y"))
+
+# UI
+ui <- fluidPage(
+  titlePanel("Netflix Titles Visualization"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("type", "Select Type:", choices = unique(movies$type), selected = "Movie"),
+      sliderInput("year", "Select Release Year:",
+                  min = min(movies$release_year, na.rm = TRUE),
+                  max = max(movies$release_year, na.rm = TRUE),
+                  value = c(2010, 2020), step = 1, sep = "")
+    ),
+    mainPanel(
+      plotlyOutput("typePlot"),
+      plotlyOutput("countryPlot"),
+      textOutput("insights")
+    )
+  )
+)
+
+# Server
+server <- function(input, output) {
+  filtered_data <- reactive({
+    movies %>%
+      filter(type == input$type,
+             release_year >= input$year[1],
+             release_year <= input$year[2])
+  })
+
+  output$typePlot <- renderPlotly({
+    p <- filtered_data() %>%
+      count(release_year) %>%
+      ggplot(aes(x = release_year, y = n)) +
+      geom_line(color = 'blue') +
+      labs(title = 'Number of Content Released per Year',
+           x = 'Year', y = 'Count')
+    ggplotly(p)
+  })
+
+  output$countryPlot <- renderPlotly({
+    p <- filtered_data() %>%
+      count(country, sort = TRUE) %>%
+      head(10) %>%
+      ggplot(aes(x = reorder(country, n), y = n, fill = country)) +
+      geom_col() +
+      coord_flip() +
+      labs(title = 'Top 10 Countries by Title Count',
+           x = 'Country', y = 'Count')
+    ggplotly(p)
+  })
+
+  output$insights <- renderText({
+    "Explore the trends of Netflix content by type and country. Use the controls to adjust the type and release year range."
+  })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+
+```
+
+
+
+```{r}
+
+# Data preparation
+movies <- movies %>%
+  filter(!is.na(date_added), !is.na(type), !is.na(country), !is.na(duration), !is.na(rating)) %>%
+  mutate(date_added = as.Date(date_added, format = "%B %d, %Y"),
+         duration_num = as.numeric(str_extract(duration, "\\d+")),
+         added_year = as.integer(format(date_added, "%Y")))
+
+# Extract unique genres
+genres <- movies %>%
+  separate_rows(listed_in, sep = ', ') %>%
+  distinct(listed_in) %>%
+  pull(listed_in)
+
+# UI
+ui <- fluidPage(
+  titlePanel("Netflix Titles Visualization"),
+  sidebarLayout(
+    sidebarPanel(
+      checkboxGroupInput("type", "Select Type:", choices = unique(movies$type), selected = unique(movies$type)),
+      sliderInput("year", "Select Netflix Added Year:",
+                  min = min(movies$added_year, na.rm = TRUE),
+                  max = max(movies$added_year, na.rm = TRUE),
+                  value = c(2018, 2022), step = 1, sep  = ""),
+      selectInput("genre", "Select Genre:", choices = genres, selected = genres, multiple = TRUE)
+    ),
+    mainPanel(
+      plotlyOutput("addedPlot"),
+      plotlyOutput("countryPlot"),
+      plotlyOutput("durationPlot"),
+      textOutput("insights")
+    )
+  )
+)
+
+# Server
+server <- function(input, output) {
+  filtered_data <- reactive({
+    movies %>%
+      filter(type %in% input$type,
+             added_year >= input$year[1],
+             added_year <= input$year[2]) %>%
+      separate_rows(listed_in, sep = ', ') %>%
+      filter(listed_in %in% input$genre)
+  })
+
+  output$addedPlot <- renderPlotly({
+    p <- filtered_data() %>%
+      count(added_year, name = "count") %>%
+      ggplot(aes(x = added_year, y = count)) +
+      geom_line(color = 'blue') +
+      labs(title = 'Number of Titles Added to Netflix per Year',
+           x = 'Year Added to Netflix', y = 'Count')
+    ggplotly(p)
+  })
+
+  output$countryPlot <- renderPlotly({
+    p <- filtered_data() %>%
+      count(country, sort = TRUE, name = "count") %>%
+      head(8) %>%
+      ggplot(aes(x = reorder(country, count), y = count, fill = country)) +
+      geom_col() +
+      coord_flip() +
+      labs(title = 'Top 8 Countries by Content release by Time and Genre',
+           x = 'Country', y = 'Count')
+    ggplotly(p, tooltip = c("country", "count"))
+  })
+
+  output$durationPlot <- renderPlotly({
+    p <- filtered_data() %>%
+      filter(type == 'Movie') %>%
+      ggplot(aes(x = duration_num)) +
+      geom_histogram(binwidth = 10, fill = 'purple', color = 'white') +
+      labs(title = 'Distribution of Content Durations across Time and Genre',
+           x = 'Duration (minutes)', y = 'Count')
+    ggplotly(p)
+  })
+
+  output$insights <- renderText({
+    "Explore Netflix trends by type, country, genre, and movie durations."
+  })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+
+
+```
+
+
