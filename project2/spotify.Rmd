@@ -1,0 +1,123 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#1
+
+```{r}
+install.packages("ggplot2")
+install.packages("dplyr")
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+high_popularity_data <- read.csv("https://raw.githubusercontent.com/shraddhabyndoor/project2_stat436/refs/heads/main/high_popularity_spotify_data.csv")
+low_popularity_data <- read.csv("https://raw.githubusercontent.com/shraddhabyndoor/project2_stat436/refs/heads/main/low_popularity_spotify_data.csv")
+# Function to extract the release year
+extract_year <- function(date) {
+    return(as.numeric(substr(date, 1, 4))) # Extracts "YYYY" from "YYYY-MM-DD" or "YYYY"
+}
+
+# Add the release year column
+high_popularity$Track_Album_Release_Year <- extract_year(high_popularity$track_album_release_date)
+low_popularity$Track_Album_Release_Year <- extract_year(low_popularity$track_album_release_date)
+
+# Add a column to indicate popularity level
+high_popularity$Popularity_Level <- "High"
+low_popularity$Popularity_Level <- "Low"
+
+# Select relevant columns and combine both datasets
+spotify_data <- bind_rows(high_popularity, low_popularity)
+
+# Summarize audio features by year and popularity level
+spotify_summary <- spotify_data %>%
+    group_by(Track_Album_Release_Year, Popularity_Level) %>%
+    summarise(
+        Energy = mean(energy, na.rm = TRUE),
+        Danceability = mean(danceability, na.rm = TRUE),
+        Valence = mean(valence, na.rm = TRUE),
+        Tempo = mean(tempo, na.rm = TRUE),
+        Loudness = mean(loudness, na.rm = TRUE)
+    ) %>%
+    filter(!is.na(Track_Album_Release_Year)) # Remove NA years
+
+# Convert to long format for ggplot
+spotify_long <- spotify_summary %>%
+    pivot_longer(
+        cols = c(Energy, Danceability, Valence, Tempo, Loudness),
+        names_to = "Feature",
+        values_to = "Value"
+    )
+
+# Create the facet plot with overlaid popularity levels
+ggplot(spotify_long, aes(x = Track_Album_Release_Year, y = Value)) +
+    geom_line(size = 1) + # Line graph for actual values
+    geom_smooth(method = "lm", linetype = "dashed", se = TRUE, aes(color = Feature)) + # Regression trend lines
+    facet_wrap(~Feature, scales = "free_y") + # Separate plots for each feature
+    labs(
+        title = "Comparison of Audio Features Over Time",
+        x = "Year",
+        y = "Average Value",
+        color = "Popularity Level"
+    ) + # Legend for color coding
+    theme_minimal()
+```
+#2
+
+
+```{r}
+# Add a column indicating popularity level
+high_popularity$Popularity_Level <- "High"
+low_popularity$Popularity_Level <- "Low"
+
+# Combine both datasets
+spotify_data <- bind_rows(high_popularity, low_popularity)
+
+# Select relevant audio features and popularity level
+spotify_long <- spotify_data %>%
+    select(Popularity_Level, energy, danceability, valence, tempo, loudness) %>%
+    pivot_longer(
+        cols = c(energy, danceability, valence, tempo, loudness),
+        names_to = "Feature",
+        values_to = "Value"
+    )
+
+# Create the box plot faceted by feature
+ggplot(spotify_long, aes(x = Popularity_Level, y = Value, fill = Popularity_Level)) +
+    geom_boxplot(alpha = 0.7, outlier.shape = NA) + # Box plot without outliers for clarity
+    facet_wrap(~Feature, scales = "free_y") + # Separate facets for each audio feature
+    labs(
+        title = "Distribution of Audio Features (High vs Low Popularity)",
+        x = "Popularity Level",
+        y = "Feature Value",
+        fill = "Popularity Level"
+    ) + # Legend for color coding
+    theme_minimal() +
+    theme(legend.position = "none") # Remove redundant legend since x-axis labels already indicate High/Low
+```
+
+
+#3
+
+```{r}
+# Add popularity level column
+high_popularity$Popularity_Level <- "High"
+low_popularity$Popularity_Level <- "Low"
+
+# Combine datasets
+spotify_data <- bind_rows(high_popularity, low_popularity)
+
+# Create violin plot
+ggplot(spotify_data, aes(x = playlist_genre, y = duration_ms, fill = Popularity_Level)) +
+    geom_violin(alpha = 0.7, scale = "width") + # Violin plot with uniform width
+    labs(
+        title = "Song Duration Distribution Across Genres (High vs Low Popularity)",
+        x = "Genre",
+        y = "Duration (ms)",
+        fill = "Popularity Level"
+    ) + # Legend for High vs Low popularity
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for readability
+```
+
