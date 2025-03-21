@@ -6,9 +6,6 @@ output: html_notebook
 #1
 
 ```{r}
-install.packages("ggplot2")
-install.packages("dplyr")
-
 library(ggplot2)
 library(dplyr)
 library(tidyr)
