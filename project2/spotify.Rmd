@@ -17,18 +17,15 @@ extract_year <- function(date) {
 }
 
 ```
-#BoxPlot Visualization 1
 
 
 ```{r}
 # Add a column indicating popularity level
-high_popularity$Popularity_Level <- "High"
-low_popularity$Popularity_Level <- "Low"
+high_popularity_data$Popularity_Level <- "High"
+low_popularity_data$Popularity_Level <- "Low"
 
-# Combine both datasets
-spotify_data <- bind_rows(high_popularity, low_popularity)
+spotify_data <- bind_rows(high_popularity_data, low_popularity_data)
 
-# Select relevant audio features and popularity level
 spotify_long <- spotify_data %>%
     select(Popularity_Level, energy, danceability, valence, tempo, loudness) %>%
     pivot_longer(
@@ -37,34 +34,36 @@ spotify_long <- spotify_data %>%
         values_to = "Value"
     )
 
-# Create the box plot faceted by feature
-ggplot(spotify_long, aes(x = Popularity_Level, y = Value, fill = Popularity_Level)) +
-    geom_boxplot(alpha = 0.7, outlier.shape = NA) + # Box plot without outliers for clarity
-    facet_wrap(~Feature, scales = "free_y") + # Separate facets for each audio feature
-    labs(
-        title = "Distribution of Audio Features (High vs Low Popularity)",
-        x = "Popularity Level",
-        y = "Feature Value",
-        fill = "Popularity Level"
-    ) + # Legend for color coding
-    theme_minimal() 
+
    
 ```
 
 
-#Violin Plot Visualization 2
+#Visualization 1
 
-```{r}
-# Create violin plot
+``` {r}
+library(ggdist)
+
+library(ggdist)
+
 ggplot(spotify_data, aes(x = playlist_genre, y = duration_ms, fill = Popularity_Level)) +
-    geom_violin(alpha = 0.7, scale = "width") + # Violin plot with uniform width
-    labs(
-        title = "Song Duration Distribution Across Genres (High vs Low Popularity)",
-        x = "Genre",
-        y = "Duration (ms)",
-        fill = "Popularity Level"
-    ) + # Legend for High vs Low popularity
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for readability
+  stat_halfeye(
+    adjust = 0.5,
+    width = 0.6,
+    .width = 0.5,
+    justification = -0.2,
+      aes(color = Popularity_Level) 
+  ) +
+  labs(
+    title = "Song Duration Distribution Across Genres (High vs Low Popularity)",
+    x = "Duration (ms)",
+    y = "Genre",
+    fill = "Popularity Level"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 7)) +
+  coord_cartesian(xlim = c(0, 600000)) +  # Zoom in to 10 minutes
+  coord_flip()
+
 ```
 
