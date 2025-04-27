@@ -61,6 +61,8 @@ ggplot(spotify_data, aes(x = playlist_genre, y = duration_ms, fill = Popularity_
     fill = "Popularity Level"
   ) +
   theme_minimal() +
+scale_fill_manual(values = c("High" = "#7B2CBF", "Low" = "#00B4D8")) +
+scale_color_manual(values = c("High" = "#7B2CBF", "Low" = "#00B4D8"))+
   theme(axis.text.y = element_text(size = 7)) +
   coord_cartesian(xlim = c(0, 600000)) +  # Zoom in to 10 minutes
   coord_flip()
